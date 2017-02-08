@@ -93,7 +93,7 @@ library(dtplyr)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Load the Data
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 library(readr)
 rs <- read_csv("C:/Users/rl1891/version-control/R/Project4/rs.csv",
     col_types = cols(cat_idx = col_skip(), 
@@ -514,7 +514,7 @@ __Ratio: Under COnstruction For Sale / Sold__
 The trend is similar to the previous, but not cleaner.
 
 ```{r temp3, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 library(scales)
 ggplot(aes(x=date, y=(under_construction_forsale/under_construction_sold)), data = rsl) +
   geom_point(alpha = .5, color = 'orange') +
@@ -556,7 +556,7 @@ The following plot shows the process and the mapping of these points in time.
 ```{r d/dt Houses Sold, message=FALSE, warning=FALSE}
 # Caluculate First Derivative of Houses_forsale
 library(scales)
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 rsl$derivative = c(diff(rsl$houses_forsale) / diff(rsl$per_idx), NA)
 ggplot(rsl, aes(date, derivative)) + 
   geom_point(alpha = 1/2)+
@@ -583,7 +583,7 @@ __Mapping the For Sale Infliction Points to Price__
 By plotting the critical infliction points to the Price curve, we see a clear correlation between these critical times and Housing Prices.
 
 ```{r Median Price by Date with Infliction, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 ggplot(aes(x=date, y=median_price_sold/1000), data = rsl) +
   geom_point(alpha = .5, color = 'orange') +
   geom_smooth() +
@@ -609,7 +609,7 @@ Again, the "For Sale" critical inflection points map to the "Annual Rate" by Dat
 "Annual Rate" is available by region, and I confirmed that the trend is similar for all regions.
 
 ```{r Annual Rate with Inflection, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 ggplot(aes(x=date, y=annual_rate_sold), data = rsl) +
   geom_point(aes(color = geoID),alpha = .5) +
   geom_hline(aes(yintercept=mean(annual_rate_sold, na.rm=T)),
@@ -636,7 +636,7 @@ The next plot shows the trend continues, but the data is noiser.  This plot also
 
 
 ```{r Ratio For Sale/Sold with Inflection Lines, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 ggplot(aes(x=date, y=(houses_forsale/house_sold)), data = subset(rsl, rsl$geoID != 'US')) +
   geom_point(aes(color=geoID),alpha = .5) +
   geom_hline(aes(yintercept=mean(houses_forsale/house_sold, na.rm=T)),
@@ -662,7 +662,7 @@ __Plotting For Sale and Sold on a single axis__
 Intuitively, I would have expected "Sold" data to be more meaningful and less noisy.  However, I found the opposite to be true.  The followiong chart confirm that result.
 
 ```{r House ForSale, Sold by Date, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 # Convert to long format to allow plotting forsale and sold on the same y axis
 rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], id.vars = "date")
 
@@ -730,7 +730,7 @@ This chart also shows that the dramatic drop in sales that, in the US, is only n
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Caluculate First Derivative of Houses_forsale
 library(scales)
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 rsl$derivative = c(diff(rsl$houses_forsale) / diff(rsl$per_idx), NA)
 ggplot(rsl, aes(date, derivative)) + 
   geom_point(alpha = 1/2)+
@@ -761,7 +761,7 @@ The black "bars" above and below the plot are due to the noise in the original v
 
 ### Plot Three
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-setwd("C:/Users/rl1891/version-control/R/Project4")
+#setwd("C:/Users/rl1891/version-control/R/Project4")
 # Convert to long format to allow plotting forsale and sold on the same y axis
 rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], id.vars = "date")
 
