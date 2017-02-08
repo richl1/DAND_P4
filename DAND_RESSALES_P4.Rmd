@@ -95,7 +95,7 @@ library(dtplyr)
 # Load the Data
 #setwd("C:/Users/rl1891/version-control/R/Project4")
 library(readr)
-rs <- read_csv("C:/Users/rl1891/version-control/R/Project4/rs.csv",
+rs <- read_csv("rs.txt",
     col_types = cols(cat_idx = col_skip(), 
         date = col_date(format = "%m/%d/%Y"), 
         dt_idx = col_skip(), geoID = col_factor(levels = c("US", 
