@@ -16,7 +16,7 @@ __Dataset Information:__
 
 - Factored "geoID" with 5 levels (US,NE, NE, MW)
 
-- (13) embedded long format variables
+- 13 embedded long format variables
 
 __Variables (dimensions):__
 
@@ -93,16 +93,22 @@ library(dtplyr)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Load the Data
-#setwd("C:/Users/rl1891/version-control/R/Project4")
+setwd("C:/Users/rl1891/version-control/R/Project4")
 library(readr)
-rs <- read_csv("rs.txt",
+rs <- read_csv("C:/Users/rl1891/version-control/R/Project4/rs.txt", 
     col_types = cols(cat_idx = col_skip(), 
         date = col_date(format = "%m/%d/%Y"), 
         dt_idx = col_skip(), geoID = col_factor(levels = c("US", 
             "NE", "MW", "SO", "WE")), geo_idx = col_skip(), 
         is_adj = col_skip(), is_adj1 = col_skip(), 
         prefix = col_skip(), suffix = col_skip(), 
-        variable = col_factor(levels = c("AVERAG_SOLD", "COMPED_FORSALE", "COMPED_SOLD", "MEDIAN_SOLD", "MMTHS_FORSALE", "MONSUP_FORSALE", "NOTSTD_FORSALE", "NOTSTD_SOLD", "TOTAL_ASOLD", "TOTAL_FORSALE", "TOTAL_SOLD", "UNDERC_FORSALE", "UNDERC_SOLD"))))
+        variable = col_factor(levels = c("AVERAG_SOLD", 
+            "COMPED_FORSALE", "COMPED_SOLD", 
+            "MEDIAN_SOLD", "MMTHS_FORSALE", 
+            "MONSUP_FORSALE", "NOTSTD_FORSALE", 
+            "NOTSTD_SOLD", "TOTAL_ASOLD", 
+            "TOTAL_FORSALE", "TOTAL_SOLD", 
+            "UNDERC_FORSALE", "UNDERC_SOLD"))))
 
 
 ```
@@ -110,7 +116,8 @@ rs <- read_csv("rs.txt",
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 # Convert Long Format to wide format
-rsl <- dcast(rs, per_idx + date + geoID ~ variable, fun.aggregate = mean, value.var = "val")
+rsl <- dcast(rs, per_idx + date + geoID ~ variable, 
+             fun.aggregate = mean, value.var = "val")
 # rename the variables to more meaningful descriptions
 names(rsl)[names(rsl)=="AVERAG_SOLD"] <- "mean_price_sold"
 names(rsl)[names(rsl)=="COMPED_FORSALE"] <- "completed_houses_forsale"
@@ -139,7 +146,7 @@ rsl_us <- subset(rsl, rsl$geoID == "US")
 
 # Univariate Plots Section
 
-__GGPAIRS and Datset Overview__
+__Datset Overview__
 
 To get a sense of the data, I used ggpairs and saw the following high-level items:
 
@@ -153,25 +160,60 @@ A dissappointing limitation of the dataset is the only the following variables h
 - Houses Sold
 - Houses For Sale
 
-```{r ggpairs, fig.height=10, fig.width=8, message=FALSE, warning=FALSE}
-# Use ggpairs to get an overall view of the data
-ggpairs(rsl, 
-        lower = list(continuous = wrap("points", shape = I('.'))), 
-        upper = list(combo = wrap("box", outlier.shape = I('.'))))
+
+
+```{r houses for Sale, message=FALSE, warning=FALSE}
+ggplot(aes(x=houses_forsale), data = rsl) +
+  geom_histogram(binwidth = 5) +
+  geom_vline(aes(xintercept=mean(houses_forsale, na.rm=T)),
+               color="red", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(houses_forsale))$houses_forsale, 0.25)),
+             color = 'blue') +
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(houses_forsale))$houses_forsale, 0.75)),
+             color = 'blue') +
+  xlab("Houses For Sale") +
+  ggtitle("Histogram: Houses For Sale (1963 - 2016)")
+
 ```
 
-__Investigate Price Increases and Distribution Over Time__
+```{r}
+summary(rsl$houses_forsale)
+```
 
-By using the ggplot facet_wrap feature and adding a variable for "decade", I generated the following plots showing how the Median House price distribution changed over the past 50+ years.
+__The above table summarizes the distribution of the Houses For Sale__
+There is a significant variance of Houses For Sale over time
 
-```{r MEDIAN HOUSE SALE PRICE BY DECADE, fig.height=10, fig.width=8, message=FALSE, warning=FALSE}
+***
+
+```{r Houses for Sale, message=FALSE, warning=FALSE}
 ggplot(aes(x=median_price_sold/1000), data = rsl) +
-  geom_histogram(bins = 100) +
-  facet_wrap(~decade, ncol=2, scales = 'free_y',shrink = FALSE) +
-  theme(strip.text.x = element_text(size = 10),
-        axis.text.x = element_text(size = 10)) +
-  ggtitle("HISTOGRAMS: MEDIAN HOUSE SALE PRICE BY DECADE 1963 - 2016")
+  geom_histogram(binwidth = 5 ) +
+  geom_vline(aes(xintercept=mean(median_price_sold/1000, na.rm=T)),
+               color="red", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(median_price_sold))$median_price_sold/1000, 0.25)),
+             color = 'blue') +
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(median_price_sold))$median_price_sold/1000, 0.75)),
+             color = 'blue') +
+  xlab("Median Price Sold x 1,000 USD") +
+  ggtitle("Histogram: Median Price Sold (1963 - 2016)")
+
+
+
 ```
+
+
+```{r}
+summary(rsl$median_price_sold)
+```
+
+__The above table summarizes the distribution of the Median Price Sold__
+The skewed distribution is likely due to variations in price over time. 
+
+***
 
 __Median Months For Sale__
 The following histogram shows the distribution of the months a house remains "for sale".  The plot identifies the mean and the quartiles.
@@ -184,13 +226,25 @@ ggplot(aes(x=median_months_forsale),
   geom_histogram(binwidth = 1/10) +
   geom_vline(aes(xintercept=mean(median_months_forsale, na.rm=T)),
                color="red", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(median_months_forsale))$median_months_forsale, 0.25)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(median_months_forsale))$median_months_forsale, 0.25)),
                color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(median_months_forsale))$median_months_forsale, 0.75)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(median_months_forsale))$median_months_forsale, 0.75)),
                color="blue", linetype="dashed", size=1) +
-  xlim(2,quantile(subset(rsl, !is.na(median_months_forsale))$median_months_forsale, 0.95)) +
+  xlim(2,quantile(subset(rsl, 
+              !is.na(median_months_forsale))$median_months_forsale, 0.95)) +
   ggtitle('HISTOGRAM: Medium Months for Sale (1963-2016)')
 ```
+
+```{r}
+summary(rsl$median_months_forsale)
+```
+
+__The above tables summarizes the distribution for Meadian Months For Sale__
+Houses typically remain "For Sale" from 4 to 6 months.
+
+***
 
 __Months of Supply__
 "Months of supply"" is the inverse of "months for sale".  The following histogram shows the distribution of the months of supply at the current sales rate.  The plot identifies the mean and the quartiles.
@@ -203,13 +257,25 @@ ggplot(aes(x=months_supply),
   geom_histogram(binwidth = 1/10) +
   geom_vline(aes(xintercept=mean(months_supply, na.rm=T)),
                color="red", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(months_supply))$months_supply, 0.25)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(months_supply))$months_supply, 0.25)),
                color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(months_supply))$months_supply, 0.75)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(months_supply))$months_supply, 0.75)),
                color="blue", linetype="dashed", size=1) +
   xlim(2,quantile(subset(rsl, !is.na(months_supply))$months_supply, 0.95)) +
   ggtitle('HISTOGRAM: Months of Supply (at current rate) (1963-2016)')
 ```
+
+```{r}
+summary(rsl$months_supply)
+```
+
+***
+
+__The above tables summarizes the distribution for Months Supply at current rate__
+Usually, there is between 4.9 and 7 months supply of houses
+
 
 __Annual Sales Rate__
 The following Annual Sales Rate distribution shows a large variation over the last 50+ years.
@@ -224,66 +290,54 @@ ggplot(aes(x=annual_rate_sold), data =rsl) +
   geom_histogram(binwidth = 10) +
   geom_vline(aes(xintercept=mean(annual_rate_sold, na.rm=T)),
                color="red", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(annual_rate_sold))$annual_rate_sold, 0.25)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(annual_rate_sold))$annual_rate_sold, 0.25)),
                color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(annual_rate_sold))$annual_rate_sold, 0.75)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(annual_rate_sold))$annual_rate_sold, 0.75)),
                color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(subset(rsl, !is.na(annual_rate_sold))$annual_rate_sold, 0.5)),
+  geom_vline(aes(xintercept=quantile(subset(rsl, 
+              !is.na(annual_rate_sold))$annual_rate_sold, 0.5)),
                color="black", linetype="dashed", size=1) +
-  xlim(0,quantile(subset(rsl, !is.na(annual_rate_sold))$annual_rate_sold, 0.95)) +
+  xlim(0,quantile(subset(rsl, 
+              !is.na(annual_rate_sold))$annual_rate_sold, 0.95)) +
   ggtitle('HISTOGRAM: Annual Sales Rate  (1963-2016)')
 ```
 
-__Ratio of (Houses for Sale) / (Houses Sold)__
-
-This dataset offers many complimentry variables that lend themselves to interesting ratios.
-
-I looked at the distribution of the (houses for sale / houses sold) which is a multiple of how many more houses are "for sale" vs. "sold".
-
-These variables are available by region.  The US geoID is a cummulative amount that can be compared to the other variables.  All regions are poltted below.
-
-They show similar distributions and a mean multiple of 5 times as many houses for sale than are sold.
-
-The regional sales quanties from largest to smallest are NorthEast, MidWest, South, and West.
-
-```{r, message=FALSE, warning=FALSE}
-ggplot(aes(x= houses_forsale/house_sold), 
-       data = rsl) +
-  geom_histogram(aes(fill=geoID),binwidth = .2) +
-  geom_vline(aes(xintercept=mean(houses_forsale/house_sold, na.rm=T)),
-               color="black", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, na.rm=T, probs=.25)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, na.rm=T, probs=.75)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, na.rm=T, probs=.5)),
-               color="blue", linetype="dashed", size=1) +
-  xlim(0,15) +
-  ggtitle('HISTOGRAM: (HOUSES FOR SALE / HOUSES SOLD)  (1963-2016)')
-
+```{r}
+summary(rsl$annual_rate_sold)
 ```
-__Completed Houses Ratio Distribution__
 
-Using the same methodology, I plotted the distribution for the ratio of Completed houses ForSale/Sold.
+__The above tables summarizes the distribution for Annual Sales Rate__
+There is a large variance in the annual rate sold
 
-This distribution shows a two or three node peak which should be investigated further.
+***
 
 ```{r COMPLETED HOUSES, message=FALSE, warning=FALSE}
 ggplot(aes(x= completed_houses_forsale/completed_houses_sold), 
        data = rsl) +
   geom_histogram(binwidth = .1) +
   xlim(0,10) +
-  geom_vline(aes(xintercept=mean(completed_houses_forsale/completed_houses_sold, na.rm=T)),
-               color="red", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, na.rm=T, probs=.25)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, na.rm=T, probs=.75)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, na.rm=T, probs=.5)),
-               color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=mean(completed_houses_forsale/completed_houses_sold, 
+                na.rm=T)), color="red", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, 
+                na.rm=T, probs=.25)), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, 
+                na.rm=T, probs=.75)), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(completed_houses_forsale/completed_houses_sold, 
+                na.rm=T, probs=.5)),  color="blue", linetype="dashed", size=1) +
   ggtitle('HISTOGRAM: COMPLETED HOUSES (FOR SALE/SOLD)  (1963-2016)')
 ```
 
+
+```{r}
+summary(rsl$completed_houses_forsale/rsl$completed_houses_sold)
+```
+
+__The above tables summarizes the distribution for Completed Houses (For Sale / Sold)__
+This ratio typically varies between 4x and 6x.
+
+***
 
 __Houses Not Started (For Sale / Sold)__
 
@@ -305,26 +359,45 @@ ggplot(aes(x= not_started_forsale/not_started_sold),
   ggtitle('HISTOGRAM: Houses Not Started (FOR SALE/SOLD)  (1963-2016)')
 ```
 
+
+```{r}
+summary(rsl$not_started_forsale/rsl$not_started_sold)
+```
+__The above tables summarizes the distribution for Not Started Houses (For Sale / Sold)__
+This ration shows a large variance over the past 50+ years.
+
+***
+
 __Houses Under Construction (For Sale / Sold)__
 
 Using the same methodology, I plotted the distribution for the ratio of Houses Under Construction: ForSale/Sold.
 
 ```{r, message=FALSE, warning=FALSE}
-ggplot(aes(x= under_construction_forsale/under_construction_sold), 
+ratio = rsl$under_construction_forsale / rsl$under_construction_sold
+ggplot(aes(x= ratio), 
        data = rsl) +
   geom_histogram(binwidth = .1) +
   xlim(3,15) +
-  geom_vline(aes(xintercept=mean(under_construction_forsale/under_construction_sold, na.rm=T)),
-               color="red", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(under_construction_forsale/under_construction_sold, na.rm=T, probs=.25)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(under_construction_forsale/under_construction_sold, na.rm=T, probs=.75)),
-               color="blue", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=quantile(under_construction_forsale/under_construction_sold, na.rm=T, probs=.5)),
-               color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=mean(ratio, na.rm=T)), 
+             color="red", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(ratio, na.rm=T, probs=.25)), 
+             color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(ratio, na.rm=T, probs=.75)), 
+             color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(ratio, na.rm=T, probs=.5)), 
+             color="blue", linetype="dashed", size=1) +
   ggtitle('HISTOGRAM: Under Construction (FOR SALE/SOLD)  (1963-2016)')
 ```
 
+
+```{r}
+summary(rsl$under_construction_forsale/rsl$under_construction_sold)
+```
+
+__The above tables summarizes the distribution for Not Started (For Sale / Sold)__
+This ratio typically varies between 7x and 10x.
+
+***
 
 # Univariate Analysis
 
@@ -373,21 +446,127 @@ In the next section, I created a new dataframe with two variable and an index.  
 
 # Bivariate Plots Section
 
-The first plot is a Median Price Sold by Date.
+The following plots use ggpairs to look at (16) variables against each other.
+
+To simplify the plots, they are shown in four groups of four.
+
+
+```{r ggpairs ForSale, message=FALSE, warning=FALSE}
+
+ggpairs(rsl, columns = c("houses_forsale", "completed_houses_forsale", 
+                         "under_construction_forsale", "not_started_forsale"), 
+        columnLabels = c("Total", "Completed", "UnderConstruct", 
+                         "Not Started")) + 
+  ggtitle("FOR SALE: Total/Completed/UnderConstruction/NotStarted")
+```
+
+
+```{r ggpairs Sold, message=FALSE, warning=FALSE}
+
+ggpairs(rsl, columns = c("house_sold", "completed_houses_sold", 
+                         "under_construction_sold", "not_started_sold"), 
+        columnLabels = c("Total", "Completed", "UnderConstruct", 
+                         "Not Started")) +
+  ggtitle("SOLD: Total/Completed/UnserConstruction/NotStarted")
+
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+ggpairs(rsl, columns = c("geoID", "houses_forsale", "house_sold", 
+                         "annual_rate_sold"), 
+        columnLabels = c("GEO ID", "FOR SALE", "SOLD", 
+                         "Annual Rate")) +
+  ggtitle("By GeoID, For Sale, Sold, Annual Rate")
+```
+
+```{r, message=FALSE, warning=FALSE}
+ggpairs(rsl, columns = c("mean_price_sold", "median_price_sold", 
+                         "median_months_forsale", "months_supply"), 
+        columnLabels = c("Mean Price", "Median Price", "Months Forsale", 
+                         "Months Supply")) +
+  ggtitle("Mean/Median Price / Months For Sale / Months Supply")
+```
+
+
+__Investigate Price Increases and Distribution Over Time__
+
+By using the ggplot facet_wrap feature and adding a variable for "decade", I generated the following plots showing how the Median House price distribution changed over the past 50+ years.
+
+```{r MEDIAN HOUSE SALE PRICE BY DECADE, fig.height=10, fig.width=8, message=FALSE, warning=FALSE}
+ggplot(aes(x=median_price_sold/1000), data = rsl) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~decade, ncol=2, scales = 'free_y',shrink = FALSE) +
+  theme(strip.text.x = element_text(size = 10),
+        axis.text.x = element_text(size = 10)) +
+  ggtitle("HISTOGRAMS: MEDIAN HOUSE SALE PRICE BY DECADE 1963 - 2016")
+```
+
+
+__Ratio of (Houses for Sale) / (Houses Sold)__
+
+This dataset offers many complimentry variables that lend themselves to interesting ratios.
+
+I looked at the distribution of the (houses for sale / houses sold) which is a multiple of how many more houses are "for sale" vs. "sold".
+
+These variables are available by region.  The US geoID is a cummulative amount that can be compared to the other variables.  All regions are poltted below.
+
+They show similar distributions and a mean multiple of 5 times as many houses for sale than are sold.
+
+The regional sales quanties from largest to smallest are NorthEast, MidWest, South, and West.
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(aes(x= houses_forsale/house_sold), 
+       data = rsl) +
+  geom_histogram(aes(fill=geoID),binwidth = .2) +
+  geom_vline(aes(xintercept=mean(houses_forsale/house_sold, na.rm=T)),
+               color="black", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, 
+                na.rm=T, probs=.25)),
+               color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, 
+                na.rm=T, probs=.75)),
+               color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=quantile(houses_forsale/house_sold, 
+                na.rm=T, probs=.5)),
+               color="blue", linetype="dashed", size=1) +
+  xlim(0,15) +
+  ggtitle('HISTOGRAM: (HOUSES FOR SALE / HOUSES SOLD)  (1963-2016)')
+
+```
+
+```{r}
+summary(rsl$houses_forsale/rsl$house_sold)
+```
+
+__The above tables summarizes the distribution for Houses For Sale / Houses Sold__
+
+
+__Completed Houses Ratio Distribution__
+
+Using the same methodology, I plotted the distribution for the ratio of Completed houses ForSale/Sold.
+
+This distribution shows a two or three node peak which should be investigated further.
+
+
+The next plot is a Median Price Sold by Date.
 
 The plot is slightly exponential with drops in prices during the bust cycles.
 
 I added the geom_smooth to clarify the trend.
 
 ```{r, message=FALSE, warning=FALSE}
+# geom_line does not work due to parital geoIDs over the time period
 ggplot(aes(x=date, y=median_price_sold/1000), 
        data = rsl) +
-  geom_point(alpha = .5, color = 'orange') +
+  geom_point(alpha=0.5, color='orange') +
   geom_smooth() +
   ggtitle("Median Price Sold by Date (1963-2016)") +
   scale_y_continuous(breaks = seq(0, 300, by = 50)) +
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")
+  scale_x_date(date_breaks = "5 year", date_labels = "%Y") +
+  ylab("Median Price Sold x 1,000 (USD)")
 ```
+
 
 _SQRT Transform of Price over Time__
 
@@ -395,15 +574,19 @@ I unsuccessfully attempted to find correlations between the price and count data
 
 THe folt is below:
 ```{r SQRT Median Price by Date, message=FALSE, warning=FALSE}
+# geom_line does not work due to parital geoIDs over the time period
 ggplot(aes(x=date, y=sqrt(median_price_sold/1000)), 
        data = subset(rsl, rsl$mean_price_sold > 0)) +
   geom_point(alpha = .5, color = 'orange') +
   geom_smooth(method = 'lm', color = 'red') +
   ggtitle("SQRT Transform: Median Price Sold by Date (1963-2016)")+
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")
+  scale_x_date(date_breaks = "5 year", date_labels = "%Y") +
+  scale_y_sqrt() +
+  ylab("Median Price Sold x 1,000 (USD)")
 
 
 ```
+
 
 __House Sales vs SQRT(Price)__
 With the SQRT transform of Prices, I looked for a correlation with Total Houses for Sale.
@@ -415,13 +598,14 @@ More detailed data will be required to make conclusions between price and House 
 ```{r Houses For Sale vs. Mean Price Sold, message=FALSE, warning=FALSE}
 ggplot(aes(x=sqrt(mean_price_sold/1000), y=houses_forsale), 
        data=subset(rsl, rsl$geoID == 'US' & rsl$mean_price_sold > 0)) +
-  geom_point(alpha = .5, color = 'orange') +
+  geom_line(alpha = .5, color = 'orange') +
   ggtitle("Houses For Sale vs. SQRT(Mean Price Sold)") +
   geom_smooth() +
   scale_x_continuous(breaks = seq(0, 20, by = 2)) +
-  scale_y_continuous(breaks = seq(0, 600, by = 50))
-
+  scale_y_continuous(breaks = seq(0, 600, by = 50)) +
+  ylab("Houses For Sale x 1,000")
 ```
+
 
 __Houses Sold by Date__
 
@@ -431,13 +615,15 @@ This chart also shows the dramatic drop is sales and that the US is only now ret
 
 ```{r Houses Sold by Date, message=FALSE, warning=FALSE}
 ggplot(aes(x=date, y=house_sold), data=subset(rsl, rsl$geoID == 'US')) +
-  geom_point(alpha = .5, color = 'orange') +
+  geom_line(alpha = .5, color = 'orange') +
   geom_hline(aes(yintercept=mean(house_sold, na.rm=T)),
                color="red", linetype="dashed", size=1) +
   geom_smooth() +
   ggtitle("Houses Sold by Date (1963 - 2016)") +
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")
+  scale_x_date(date_breaks = "5 year", date_labels = "%Y") +
+  ylab("Houses Sold x 1,000")
 ```
+
 
 __Houses For Sale by Date__
 
@@ -445,13 +631,15 @@ While the previous plot of Houses Sold has a lot of noise, the plot of Houses Fo
 
 ```{r Houses For Sale by Date, message=FALSE, warning=FALSE}
 ggplot(aes(x=date, y=houses_forsale), data=rsl_us) +
-  geom_point(alpha = .5, color = 'orange') +
+  geom_line(color = 'orange') +
   geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)),
                color="red", linetype="dashed", size=1) +
   geom_smooth() +
   ggtitle("Houses For Sale by Date (1963-2016)") +
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")
+  scale_x_date(date_breaks = "5 year", date_labels = "%Y") +
+  ylab("Houses For Sale x 1,000")
 ```
+
 
 __Months Supply by Date__
 
@@ -460,20 +648,24 @@ Next, I looked at "Months Supply" to see if it was a better predictor of the hou
 "months supply" showed the same trend, but is was still noisy.
 
 ```{r Months Supply by Date, message=FALSE, warning=FALSE}
+# geom_line() does not work due to partially categorized data
 ggplot(aes(x=date, y=months_supply), data = rsl) +
   geom_point(alpha = .5, color = 'orange') +
   geom_hline(aes(yintercept=mean(months_supply, na.rm=T)),
                color="red", linetype="dashed", size=1) +
   geom_smooth() +
   ggtitle("Months Supply by Date (1963 - 2016)") +
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")
+  scale_x_date(date_breaks = "5 year", date_labels = "%Y") +
+  ylab("Months of Supply at Current Rate")
 ```
+
 __Median Months For Sale by Date__
 
 "Median Months"" for sale is the inverse of the previous Months Supply, and it shows similar trends.
 
 ```{r Median Months For Sale, message=FALSE, warning=FALSE}
 library(scales)
+# geom_line() does not work due to partially categorized data
 ggplot(aes(x=date, y=median_months_forsale), data = rsl) +
   geom_point(alpha = .5, color = 'orange') +
   geom_hline(aes(yintercept=mean(median_months_forsale, na.rm=T)),
@@ -486,8 +678,10 @@ ggplot(aes(x=date, y=median_months_forsale), data = rsl) +
   scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31'))) +
-  scale_y_continuous(breaks = seq(0, 20, by = 2))
+  scale_y_continuous(breaks = seq(0, 20, by = 2)) +
+  ylab("Median Months For Sale")
 ```
+
 ###Ratio Analysis###
 
 Using the complimentary nature of the variables, I tried to find the cleanest indicators of the housing cycles.  The ratios of "For Sale" to "Sold" must always be greater than one.  The larger multiples indicate Seller's markets.  Lower ratios indicate Buyer's markets.
@@ -498,34 +692,41 @@ The trend is similar to the previous, but not cleaner.
 
 ```{r ForSale_Sold by Date, message=FALSE, warning=FALSE}
 library(scales)
-ggplot(aes(x=date, y=(completed_houses_forsale/completed_houses_sold)), data = rsl) +
+ratio = rsl$completed_houses_forsale / rsl$completed_houses_sold
+ggplot(aes(x=date, y=ratio), 
+        data = rsl) +
   geom_point(alpha = .5, color = 'orange') +
-  geom_hline(aes(yintercept=mean(completed_houses_forsale/completed_houses_sold, na.rm=T)),
-               color="red", linetype="dashed", size=1) +
+  geom_hline(aes(yintercept=mean(ratio, 
+        na.rm=T)), color="red", linetype="dashed", size=1) +
   geom_smooth() +
   ggtitle("Ratio Completed: For Sale / Sold by Date") +
   scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
-               limits = as.Date(c('1973-01-01','2016-12-31')))
-ggsave("ForSale_Sold_by_Date.jpeg")
+               limits = as.Date(c('1973-01-01','2016-12-31'))) +
+  ylab("Completed Houses (For Sale/Sold) x 1,000")
 ```
+
 __Ratio: Under COnstruction For Sale / Sold__
 
 The trend is similar to the previous, but not cleaner.
 
 ```{r temp3, message=FALSE, warning=FALSE}
-#setwd("C:/Users/rl1891/version-control/R/Project4")
+
 library(scales)
-ggplot(aes(x=date, y=(under_construction_forsale/under_construction_sold)), data = rsl) +
-  geom_point(alpha = .5, color = 'orange') +
-  geom_hline(aes(yintercept=mean(under_construction_forsale/under_construction_sold, na.rm=T)),
-               color="red", linetype="dashed", size=1) +
+ratio = rsl$under_construction_forsale/rsl$under_construction_sold
+ggplot(aes(x=date, y=(ratio)), 
+            data = rsl) + geom_point(alpha = .5, color = 'orange') +
+  geom_hline(aes(yintercept=mean(ratio, 
+                na.rm=T)), color="red", linetype="dashed", size=1) +
   geom_smooth() +
   ggtitle("Ratio Under Construction: For Sale / Sold by Date") +
   scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
-               limits = as.Date(c('1973-01-01','2016-12-31')))
+               limits = as.Date(c('1973-01-01','2016-12-31'))) +
+  ylab("Under Construction Houses (For Sale/Sold) x 1,000")
+
 ```
+
 
 
 # Bivariate Analysis
@@ -558,23 +759,47 @@ The following plot shows the process and the mapping of these points in time.
 library(scales)
 #setwd("C:/Users/rl1891/version-control/R/Project4")
 rsl$derivative = c(diff(rsl$houses_forsale) / diff(rsl$per_idx), NA)
-ggplot(rsl, aes(date, derivative)) + 
-  geom_point(alpha = 1/2)+
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),color = 'green') +
-  ylim(100,450) +
-  scale_x_date(date_breaks = "5 year",
+
+# Create a list of vertical lines for the critcal dates to be added to plots
+p_critcal = list(geom_vline(xintercept = 
+                            as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),
+                            color = 'green'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),
+                            color = 'red'), 
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),
+                            color = 'green'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),
+                            color = 'red'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),
+                            color = 'green'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),
+                            color = 'red'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),
+                            color = 'green'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),
+                            color = 'red'),
+                 geom_vline(xintercept = 
+                            as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),
+                            color = 'green'))
+# geom_line does not work due to high frequency noise  
+plt <- ggplot(rsl, aes(date, derivative)) + 
+          geom_point(alpha = 1/2) +
+          scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31'))) +
-  ggtitle('1st deriative of Houses Sold by date (d/dt Houses Sold)') +
-  ylab("d/dt Houses Sold")
+          ggtitle('1st deriative of Houses Sold by date (d/dt Houses Sold)') +
+          ylab("d/dt Houses Sold x 1,000") + ylim(100,450)
+
+plt + p_critcal
+
+  
 
 ```
 
@@ -583,23 +808,16 @@ __Mapping the For Sale Infliction Points to Price__
 By plotting the critical infliction points to the Price curve, we see a clear correlation between these critical times and Housing Prices.
 
 ```{r Median Price by Date with Infliction, message=FALSE, warning=FALSE}
-#setwd("C:/Users/rl1891/version-control/R/Project4")
-ggplot(aes(x=date, y=median_price_sold/1000), data = rsl) +
-  geom_point(alpha = .5, color = 'orange') +
-  geom_smooth() +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),color = 'green') +
-  scale_x_date(date_breaks = "5 year",
+
+plt <- ggplot(aes(x=date, y=median_price_sold/1000), data = rsl) +
+        geom_point(alpha = .5, color = 'orange') +
+        geom_smooth() + 
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31')))+
-  ggtitle('Median Price by Date with (Houses Sold) Inflection Lines')
+        ggtitle('Median Price by Date with (Houses Sold) Inflection Lines') +
+        ylab("Median Price Sold x 1,000 (USD)")
+plt + p_critcal
 ```
 
 __Annual Housing Rate__
@@ -609,25 +827,18 @@ Again, the "For Sale" critical inflection points map to the "Annual Rate" by Dat
 "Annual Rate" is available by region, and I confirmed that the trend is similar for all regions.
 
 ```{r Annual Rate with Inflection, message=FALSE, warning=FALSE}
-#setwd("C:/Users/rl1891/version-control/R/Project4")
-ggplot(aes(x=date, y=annual_rate_sold), data = rsl) +
-  geom_point(aes(color = geoID),alpha = .5) +
-  geom_hline(aes(yintercept=mean(annual_rate_sold, na.rm=T)),
+
+plt <- ggplot(aes(x=date, y=annual_rate_sold), data = rsl) +
+        geom_line(aes(color = geoID)) +
+        geom_hline(aes(yintercept=mean(annual_rate_sold, na.rm=T)),
                color="red", linetype="dashed", size=1) +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),color = 'green') +
-  geom_smooth() +
-  ggtitle("Annual Rate by Date with Inflection Lines") +
-  scale_x_date(date_breaks = "5 year",
+        geom_smooth() +
+        ggtitle("Annual Rate by Date with Inflection Lines") +
+        ylab("Annual Rate Sold x 1,000 (USD)")
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31')))
+plt + p_critcal
 ```
 
 __Ratio Analaysis with Inflection Lines__
@@ -636,25 +847,20 @@ The next plot shows the trend continues, but the data is noiser.  This plot also
 
 
 ```{r Ratio For Sale/Sold with Inflection Lines, message=FALSE, warning=FALSE}
-#setwd("C:/Users/rl1891/version-control/R/Project4")
-ggplot(aes(x=date, y=(houses_forsale/house_sold)), data = subset(rsl, rsl$geoID != 'US')) +
-  geom_point(aes(color=geoID),alpha = .5) +
-  geom_hline(aes(yintercept=mean(houses_forsale/house_sold, na.rm=T)),
-               color="red", linetype="dashed", size=1) +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),color = 'green') +
-  geom_smooth() +
-  ggtitle("Ratio Houses For Sale / Sold by Date with Inflection Lines") +
-  scale_x_date(date_breaks = "5 year",
+
+plt <- ggplot(aes(x=date, y=(houses_forsale/house_sold)), 
+              data = subset(rsl, rsl$geoID != 'US')) +
+        geom_line(aes(color=geoID)) +
+        geom_hline(aes(yintercept=mean(houses_forsale/house_sold, na.rm=T)),
+               color="red", linetype="dashed", size=1) + 
+        geom_smooth() + 
+        ggtitle("Ratio Houses For Sale / Sold by Date with Inflection Lines") +
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
-               limits = as.Date(c('1973-01-01','2016-12-31')))
+               limits = as.Date(c('1973-01-01','2016-12-31'))) +
+        ylab("Houses (For Sale / Sold) x 1,000 (USD)")
+plt + p_critcal
+
 ```
 
 __Plotting For Sale and Sold on a single axis__
@@ -664,21 +870,22 @@ Intuitively, I would have expected "Sold" data to be more meaningful and less no
 ```{r House ForSale, Sold by Date, message=FALSE, warning=FALSE}
 #setwd("C:/Users/rl1891/version-control/R/Project4")
 # Convert to long format to allow plotting forsale and sold on the same y axis
-rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], id.vars = "date")
+rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], 
+              id.vars = "date")
 
-ggplot(rsl2, aes(date, value, color = variable)) + 
-  geom_point() + 
-  geom_smooth() +
-  geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)), color="black", 
-             linetype="dashed", size=1) +
-  geom_hline(aes(yintercept=mean(rsl_us$house_sold, na.rm=T)), color="black", 
-             linetype="dashed", size=1) +
-  ylab('Houses: For Sale & Sold') +
-  labs(color="Legend:") +
-  ggtitle("House ForSale, Sold by Date (1963-2016)") +
-  scale_x_date(date_breaks = "5 year",
+plt <- ggplot(rsl2, aes(date, value, color = variable)) + 
+        geom_line() + geom_smooth() +
+        geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)), 
+              color="black", linetype="dashed", size=1) +
+        geom_hline(aes(yintercept=mean(rsl_us$house_sold, na.rm=T)), 
+              color="black", linetype="dashed", size=1) +
+        ylab("Houses For Sale x 1,000") +
+        labs(color="Legend:") +
+        ggtitle("House ForSale, Sold by Date (1963-2016)") +
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1963-01-01','2016-12-31')))
+plt + p_critcal
 ```
 
 
@@ -706,16 +913,17 @@ I tried, but failed to create a pricing model.  However, I created a historicall
 
 ### Plot One
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x=date, y=houses_forsale), data=rsl_us) +
-  geom_point(alpha = .5, color = 'orange') +
-  geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)),
+plt <- ggplot(aes(x=date, y=houses_forsale), data=rsl_us) +
+        geom_line(color = 'orange') +
+        geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)),
                color="red", linetype="dashed", size=1) +
-  geom_smooth() +
-  ylab("Houses Sold x 1,000") +
-  ggtitle("Houses For Sale by Date (1963-2016)") +
-  scale_x_date(date_breaks = "5 year",
+        geom_smooth() +
+        ylab("Houses Sold x 1,000") +
+        ggtitle("Houses For Sale by Date (1963-2016)") +
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31')))
+plt
 ```
 
 ### Description One
@@ -732,26 +940,17 @@ This chart also shows that the dramatic drop in sales that, in the US, is only n
 library(scales)
 #setwd("C:/Users/rl1891/version-control/R/Project4")
 rsl$derivative = c(diff(rsl$houses_forsale) / diff(rsl$per_idx), NA)
-ggplot(rsl, aes(date, derivative)) + 
-  geom_point(alpha = 1/2)+
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1976',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1979',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1982',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/1989',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('10/1/1992',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1996',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('1/1/1998',format='%m/%d/%Y')),color = 'green') +
-  geom_vline(xintercept=as.numeric(as.Date('6/1/2006',format='%m/%d/%Y')),color = 'red') +
-  geom_vline(xintercept=as.numeric(as.Date('4/1/2012',format='%m/%d/%Y')),color = 'green') +
-  ylim(100,450) +
-  scale_x_date(date_breaks = "5 year",
+plt <- ggplot(rsl, aes(date, derivative)) + 
+        geom_point(alpha = 1/2) + ylim(100,450) +
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1974-01-01','2016-12-31'))) +
-  ggtitle('1st deriative of Houses Sold by date (d/dt Houses Sold)') +
-  ylab("d/dt Houses Sold x 1,000") +
-  scale_x_date(date_breaks = "5 year",
+        ggtitle('1st deriative of Houses Sold by date (d/dt Houses Sold)') +
+        ylab("d/dt Houses Sold x 1,000") +
+        scale_x_date(date_breaks = "5 year",
                labels=date_format("%Y"),
                limits = as.Date(c('1973-01-01','2016-12-31')))
+plt + p_critcal
 ```
 
 ### Description Two
@@ -763,15 +962,16 @@ The black "bars" above and below the plot are due to the noise in the original v
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #setwd("C:/Users/rl1891/version-control/R/Project4")
 # Convert to long format to allow plotting forsale and sold on the same y axis
-rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], id.vars = "date")
+rsl2 <- melt(rsl_us[,c("date","houses_forsale", "house_sold")], 
+                id.vars = "date")
 
 ggplot(rsl2, aes(date, value, color = variable)) + 
-  geom_point() + 
+  geom_line() + 
   geom_smooth() +
-  geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)), color="black", 
-             linetype="dashed", size=1) +
-  geom_hline(aes(yintercept=mean(rsl_us$house_sold, na.rm=T)), color="black", 
-             linetype="dashed", size=1) +
+  geom_hline(aes(yintercept=mean(rsl_us$houses_forsale, na.rm=T)), 
+              color="black", linetype="dashed", size=1) +
+  geom_hline(aes(yintercept=mean(rsl_us$house_sold, na.rm=T)), 
+              color="black", linetype="dashed", size=1) +
   ylab('Houses: For Sale & Sold x 1,000') +
   labs(color="Legend:") +
   ggtitle("House ForSale, Sold by Date (1963-2016)") +
@@ -794,4 +994,9 @@ It was tempting to combine these varibles using ggplot "facets" with different Y
 # Reflection
 
 Although the dataset revealed truley interesting and useful insights, I am disspointed in the level of detail.  Having more variables with geographic information would have been useful.  Also, I expected the complementary nature of the variables to yield key insights, but they were too highly correlated to each other and the other variables.
+
+A challenge and learning experience was shaping the dataset for import.  I learned how to use dplyr and related functions.  I am confident that I can "wrangle" any dataset for exploratory data analysis.
+
+Future progress would be to link iother census data to show correlations and perhaps build a pricing model.
+
 
